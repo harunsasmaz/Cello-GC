@@ -220,7 +220,7 @@ static void gc_mark_stack(gc_t *gc)
     }
 }
 
-static void tgc_mark(gc_t *gc) 
+static void gc_mark(gc_t *gc) 
 {
     size_t i, k;
     jmp_buf env;
@@ -248,3 +248,75 @@ static void tgc_mark(gc_t *gc)
     mark_stack(gc);
 }
 
+void gc_sweep(gc_t *gc) 
+{
+    size_t i, j, k, nj, nh;
+
+    if (gc->nitems == 0) return;
+
+    gc->nfrees = 0;
+    for (i = 0; i < gc->nslots; i++) 
+    {
+        if (gc->items[i].hash == 0) { continue; }
+        if (gc->items[i].flags & GC_MARK) { continue; }
+        if (gc->items[i].flags & GC_ROOT) { continue; }
+        gc->nfrees++;
+    }
+
+    gc->frees = realloc(gc->frees, sizeof(gc_ptr_t) * gc->nfrees);
+    if (gc->frees == NULL) return;
+
+    i = 0; k = 0;
+    while (i < gc->nslots) 
+    {
+        if (gc->items[i].hash == 0) { i++; continue; }
+        if (gc->items[i].flags & GC_MARK) { i++; continue; }
+        if (gc->items[i].flags & GC_ROOT) { i++; continue; }
+
+        gc->frees[k] = gc->items[i]; k++;
+        memset(&gc->items[i], 0, sizeof(gc_ptr_t));
+
+        j = i;
+        while (1) 
+        { 
+            nj = (j+1) % gc->nslots;
+            nh = gc->items[nj].hash;
+
+            if (nh != 0 && gc_probe(gc, nj, nh) > 0) 
+            {
+                memcpy(&gc->items[ j], &gc->items[nj], sizeof(gc_ptr_t));
+                memset(&gc->items[nj],              0, sizeof(gc_ptr_t));
+                j = nj;
+            } else {
+                break;
+            }  
+        }
+        gc->nitems--;
+    }
+
+    for (i = 0; i < gc->nslots; i++) 
+    {
+        if (gc->items[i].hash == 0) continue;
+        if (gc->items[i].flags & GC_MARK) {
+            gc->items[i].flags &= ~GC_MARK;
+        }
+    }
+
+    gc_resize_less(gc);
+
+    gc->mitems = gc->nitems + (size_t)(gc->nitems * gc->sweepfactor) + 1;
+
+    for (i = 0; i < gc->nfrees; i++) 
+    {
+        if (gc->frees[i].ptr) 
+        {
+            if (gc->frees[i].dtor)
+                gc->frees[i].dtor(gc->frees[i].ptr);
+            free(gc->frees[i].ptr);
+        }
+    }
+
+    free(gc->frees);
+    gc->frees = NULL;
+    gc->nfrees = 0;
+}
