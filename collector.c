@@ -435,3 +435,33 @@ void *gc_realloc(gc_t *gc, void *ptr, size_t size)
     return NULL;
 }
 
+void gc_free(gc_t *gc, void *ptr) 
+{
+    gc_ptr_t *p  = gc_get_ptr(gc, ptr);
+    if (p) 
+    {
+        if (p->dtor)
+            p->dtor(ptr);
+        
+        free(ptr);
+        gc_rem(gc, ptr);
+    }
+}
+
+void *gc_alloc_opt(gc_t *gc, size_t size, int flags, void(*dtor)(void*))
+{
+    void *ptr = malloc(size);
+    if (ptr != NULL)
+        ptr = gc_add(gc, ptr, size, flags, dtor);
+    return ptr;
+}
+
+void *gc_calloc_opt(gc_t *gc, size_t num, size_t size, 
+    int flags, void(*dtor)(void*)) 
+{
+    void *ptr = calloc(num, size);
+    if (ptr != NULL)
+        ptr = gc_add(gc, ptr, num * size, flags, dtor);
+    return ptr;
+}
+
