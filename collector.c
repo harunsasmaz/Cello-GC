@@ -320,3 +320,36 @@ void gc_sweep(gc_t *gc)
     gc->frees = NULL;
     gc->nfrees = 0;
 }
+
+void gc_start(gc_t *gc, void *stk) 
+{
+    gc->bottom = stk;
+    gc->paused = 0;
+    gc->nitems = 0;
+    gc->nslots = 0;
+    gc->mitems = 0;
+    gc->nfrees = 0;
+    gc->maxptr = 0;
+    gc->items = NULL;
+    gc->frees = NULL;
+    gc->minptr = UINTPTR_MAX;
+    gc->loadfactor = 0.9;
+    gc->sweepfactor = 0.5;
+}
+
+void tgc_stop(gc_t *gc) 
+{
+    gc_sweep(gc);
+    free(gc->items);
+    free(gc->frees);
+}
+
+void tgc_pause(gc_t *gc) 
+{
+    gc->paused = 1;
+}
+
+void tgc_resume(gc_t *gc) 
+{
+    gc->paused = 0;
+}
