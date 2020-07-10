@@ -337,19 +337,24 @@ void gc_start(gc_t *gc, void *stk)
     gc->sweepfactor = 0.5;
 }
 
-void tgc_stop(gc_t *gc) 
+void gc_stop(gc_t *gc) 
 {
     gc_sweep(gc);
     free(gc->items);
     free(gc->frees);
 }
 
-void tgc_pause(gc_t *gc) 
+void gc_pause(gc_t *gc) 
 {
     gc->paused = 1;
 }
 
-void tgc_resume(gc_t *gc) 
+void gc_resume(gc_t *gc) 
 {
     gc->paused = 0;
+}
+
+void gc_run(gc_t *gc) {
+    gc_mark(gc);
+    gc_sweep(gc);
 }
