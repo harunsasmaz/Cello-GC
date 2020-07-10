@@ -65,3 +65,43 @@ static void gc_add_ptr(gc_t *gc, void *ptr, size_t size,
         j++;
     }
 }
+
+static void gc_rem_ptr(gc_t *gc, void *ptr) 
+{
+    size_t i, j, h, nj, nh;
+
+    if (gc->nitems == 0) { return; }
+
+    for (i = 0; i < gc->nfrees; i++) {
+    if (gc->frees[i].ptr == ptr) { gc->frees[i].ptr = NULL; }
+    }
+
+    i = gc_hash(ptr) % gc->nslots; j = 0;
+
+    while (1) {
+        h = gc->items[i].hash;
+        if (h == 0 || j > gc_probe(gc, i, h)) return;
+
+        if (gc->items[i].ptr == ptr) 
+        {
+            memset(&gc->items[i], 0, sizeof(gc_ptr_t));
+            j = i;
+            while (1) { 
+                nj = (j+1) % gc->nslots;
+                nh = gc->items[nj].hash;
+                if (nh != 0 && gc_probe(gc, nj, nh) > 0) {
+                    memcpy(&gc->items[ j], &gc->items[nj], sizeof(gc_ptr_t));
+                    memset(&gc->items[nj],              0, sizeof(gc_ptr_t));
+                    j = nj;
+                } else {
+                    break;
+                }  
+            }
+            gc->nitems--;
+            return;
+        }
+        i = (i+1) % gc->nslots; 
+        j++;
+    }
+}
+
