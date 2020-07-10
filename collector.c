@@ -1,5 +1,16 @@
 #include "collector.h"
 
+#define GC_PRIMES_COUNT 24
+
+static const size_t gc_primes[GC_PRIMES_COUNT] = {
+  0,       1,       5,       11,
+  23,      53,      101,     197,
+  389,     683,     1259,    2417,
+  4733,    9371,    18617,   37097,
+  74093,   148073,  296099,  592019,
+  1100009, 2200013, 4400021, 8800019
+};
+
 static size_t gc_hash(void *ptr) 
 {
     return ((uintptr_t)ptr) >> 3;
@@ -103,5 +114,60 @@ static void gc_rem_ptr(gc_t *gc, void *ptr)
         i = (i+1) % gc->nslots; 
         j++;
     }
+}
+
+static size_t gc_ideal_size(gc_t* gc, size_t size) 
+{
+    size_t i, last;
+    size = (size_t)((double)(size+1) / gc->loadfactor);
+
+    for (i = 0; i < GC_PRIMES_COUNT; i++)
+        if (gc_primes[i] >= size) return gc_primes[i]; 
+
+    last = gc_primes[GC_PRIMES_COUNT - 1];
+
+    for (i = 0;; i++)
+        if (last * i >= size) return last * i;
+
+    return 0;
+}
+
+static int gc_rehash(gc_t* gc, size_t new_size)
+{
+    size_t i;
+    gc_ptr_t *old_items = gc->items;
+    size_t old_size = gc->nslots;
+
+    gc->nslots = new_size;
+    gc->items = calloc(gc->nslots, sizeof(gc_ptr_t));
+
+    if (gc->items == NULL) {
+        gc->nslots = old_size;
+        gc->items = old_items;
+        return 0;
+    }
+
+    for (i = 0; i < old_size; i++) {
+        if (old_items[i].hash != 0) {
+            gc_add_ptr(gc, 
+            old_items[i].ptr,   old_items[i].size, 
+            old_items[i].flags, old_items[i].dtor);
+        }
+    }
+
+    free(old_items);    
+    return 1;
+}
+
+static int gc_resize_more(gc_t *gc) {
+    size_t new_size = gc_ideal_size(gc, gc->nitems);  
+    size_t old_size = gc->nslots;
+    return (new_size > old_size) ? gc_rehash(gc, new_size) : 1;
+}
+
+static int gc_resize_less(gc_t *gc) {
+    size_t new_size = gc_ideal_size(gc, gc->nitems);  
+    size_t old_size = gc->nslots;
+    return (new_size < old_size) ? gc_rehash(gc, new_size) : 1;
 }
 
