@@ -358,3 +358,43 @@ void gc_run(gc_t *gc) {
     gc_mark(gc);
     gc_sweep(gc);
 }
+
+static void *gc_add(gc_t *gc, void *ptr, size_t size, 
+    int flags, void(*dtor)(void*)) 
+{
+    gc->nitems++;
+    gc->maxptr = ((uintptr_t)ptr) + size > gc->maxptr ? 
+        ((uintptr_t)ptr) + size : gc->maxptr; 
+    gc->minptr = ((uintptr_t)ptr) < gc->minptr ? 
+        ((uintptr_t)ptr) : gc->minptr;
+
+    if (gc_resize_more(gc)) 
+    {
+        gc_add_ptr(gc, ptr, size, flags, dtor);
+        if (!gc->paused && gc->nitems > gc->mitems)
+            gc_run(gc);
+        return ptr;
+    } else {
+        gc->nitems--;
+        free(ptr);
+        return NULL;
+    }
+}
+
+static void gc_rem(gc_t *gc, void *ptr) 
+{
+    gc_rem_ptr(gc, ptr);
+    gc_resize_less(gc);
+    gc->mitems = gc->nitems + gc->nitems / 2 + 1;
+}
+
+void *gc_alloc(gc_t *gc, size_t size) 
+{
+    return gc_alloc_opt(gc, size, 0, NULL);
+}
+
+void *gc_calloc(gc_t *gc, size_t num, size_t size) 
+{
+    return gc_calloc_opt(gc, num, size, 0, NULL);
+}
+
