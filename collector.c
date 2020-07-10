@@ -171,3 +171,80 @@ static int gc_resize_less(gc_t *gc) {
     return (new_size < old_size) ? gc_rehash(gc, new_size) : 1;
 }
 
+static void gc_mark_ptr(gc_t *gc, void *ptr) 
+{
+    size_t i, j, h, k;
+
+    if ((uintptr_t)ptr < gc->minptr ||  (uintptr_t)ptr > gc->maxptr)
+        return;
+
+    i = gc_hash(ptr) % gc->nslots; j = 0;
+
+    while (1) 
+    {
+        h = gc->items[i].hash;
+        if (h == 0 || j > gc_probe(gc, i, h)) return;
+        if (ptr == gc->items[i].ptr) 
+        {
+            if (gc->items[i].flags & GC_MARK) return;
+            gc->items[i].flags |= GC_MARK;
+            if (gc->items[i].flags & GC_LEAF) return;
+
+            for (k = 0; k < gc->items[i].size/sizeof(void*); k++)
+                gc_mark_ptr(gc, ((void**)gc->items[i].ptr)[k]);
+            
+            return;
+        }
+        i = (i+1) % gc->nslots; 
+        j++;
+    }
+}
+
+static void gc_mark_stack(gc_t *gc) 
+{
+    void *stk, *bot, *top, *p;
+    bot = gc->bottom; top = &stk;
+
+    if (bot == top) return;
+
+    if (bot < top) 
+    {
+        for (p = top; p >= bot; p = ((char*)p) - sizeof(void*))
+            gc_mark_ptr(gc, *((void**)p));
+    }
+
+    if (bot > top) 
+    {
+        for (p = top; p <= bot; p = ((char*)p) + sizeof(void*))
+            gc_mark_ptr(gc, *((void**)p));
+    }
+}
+
+static void tgc_mark(gc_t *gc) 
+{
+    size_t i, k;
+    jmp_buf env;
+    void (*volatile mark_stack)(gc_t*) = gc_mark_stack;
+
+    if (gc->nitems == 0) { return; }
+
+    for (i = 0; i < gc->nslots; i++) 
+    {
+        if (gc->items[i].hash == 0) continue;
+        if (gc->items[i].flags & GC_MARK) continue;
+
+        if (gc->items[i].flags & GC_ROOT) 
+        {
+            gc->items[i].flags |= GC_MARK;
+            if (gc->items[i].flags & GC_LEAF) continue;
+            for (k = 0; k < gc->items[i].size/sizeof(void*); k++)
+                gc_mark_ptr(gc, ((void**)gc->items[i].ptr)[k]);
+            continue;
+        }
+    }
+
+    memset(&env, 0, sizeof(jmp_buf));
+    setjmp(env);
+    mark_stack(gc);
+}
+
