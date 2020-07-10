@@ -1,31 +1,30 @@
 #ifndef COLLECTOR_H
 #define COLLECTOR_H
-
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
 #include <setjmp.h>
 
 enum {
-  GC_MARK = 0x01,
-  GC_ROOT = 0x02,
-  GC_LEAF = 0x04
+    GC_MARK = 0x01,
+    GC_ROOT = 0x02,
+    GC_LEAF = 0x04
 };
 
 typedef struct {
-  void *ptr;
-  int flags;
-  size_t size, hash;
-  void (*dtor)(void*);
+    void *ptr;
+    int flags;
+    size_t size, hash;
+    void (*dtor)(void*);
 } gc_ptr_t;
 
 typedef struct {
-  void *bottom;
-  int paused;
-  uintptr_t minptr, maxptr;
-  gc_ptr_t *items, *frees;
-  double loadfactor, sweepfactor;
-  size_t nitems, nslots, mitems, nfrees;
+    void *bottom;
+    int paused;
+    uintptr_t minptr, maxptr;
+    gc_ptr_t *items, *frees;
+    double loadfactor, sweepfactor;
+    size_t nitems, nslots, mitems, nfrees;
 } gc_t;
 
 void gc_start(gc_t *gc, void *stk);
