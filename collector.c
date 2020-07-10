@@ -354,7 +354,8 @@ void gc_resume(gc_t *gc)
     gc->paused = 0;
 }
 
-void gc_run(gc_t *gc) {
+void gc_run(gc_t *gc) 
+{
     gc_mark(gc);
     gc_sweep(gc);
 }
