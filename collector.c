@@ -398,3 +398,40 @@ void *gc_calloc(gc_t *gc, size_t num, size_t size)
     return gc_calloc_opt(gc, num, size, 0, NULL);
 }
 
+void *gc_realloc(gc_t *gc, void *ptr, size_t size) 
+{
+    gc_ptr_t *p;
+    void *qtr = realloc(ptr, size);
+
+    if (qtr == NULL)
+    {
+        gc_rem(gc, ptr);
+        return qtr;
+    }
+
+    if (ptr == NULL) 
+    {
+        gc_add(gc, qtr, size, 0, NULL);
+        return qtr;
+    }
+
+    p  = gc_get_ptr(gc, ptr);
+
+    if (p && qtr == ptr) 
+    {
+        p->size = size;
+        return qtr;
+    }
+
+    if (p && qtr != ptr) 
+    {
+        int flags = p->flags;
+        void(*dtor)(void*) = p->dtor;
+        gc_rem(gc, ptr);
+        gc_add(gc, qtr, size, flags, dtor);
+        return qtr;
+    }
+
+    return NULL;
+}
+
