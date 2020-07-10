@@ -465,3 +465,35 @@ void *gc_calloc_opt(gc_t *gc, size_t num, size_t size,
     return ptr;
 }
 
+void gc_set_dtor(gc_t *gc, void *ptr, void(*dtor)(void*)) 
+{
+    gc_ptr_t *p  = gc_get_ptr(gc, ptr);
+    if (p) p->dtor = dtor;
+}
+
+void gc_set_flags(gc_t *gc, void *ptr, int flags) 
+{
+    gc_ptr_t *p  = gc_get_ptr(gc, ptr);
+    if (p) p->flags = flags;
+}
+
+int gc_get_flags(gc_t *gc, void *ptr) 
+{
+    gc_ptr_t *p  = gc_get_ptr(gc, ptr);
+    if (p) return p->flags;
+    return 0;
+}
+
+void(*gc_get_dtor(gc_t *gc, void *ptr))(void*) 
+{
+    gc_ptr_t *p  = gc_get_ptr(gc, ptr);
+    if (p) return p->dtor;
+    return NULL;
+}
+
+size_t gc_get_size(gc_t *gc, void *ptr) 
+{
+    gc_ptr_t *p  = gc_get_ptr(gc, ptr);
+    if (p) return p->size;
+    return 0;
+}
