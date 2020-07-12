@@ -125,7 +125,7 @@ Set the flags associated with a memory allocation, for example the value `GC_ROO
 
 * Cello-GC does not work with <code>setjmp</code> and <code>longjmp</code>.
 
-## Acknowlegments
+## Acknowledgements
 
 This repository is created for practical purposes under my personal interests in compiler design and interpeters. There is no commercial use of this code and I am aware of license agreements. I want to give special thanks, and of course, credit for the work here to both:
 
