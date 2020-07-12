@@ -10,6 +10,14 @@ It provides automatical removal of pointers allocated by gc_alloc() and friends 
 
 > A destructor is a function that is called when an unreachable memory is freed by garbage collector. This functions can be set when a memory is allocated by using memory allocation functions defined in this API.
 
+<h3> Resources for Mark-and-Sweep memory allocation algorithm </h3>
+
+* [GeeksforGeeks](https://www.geeksforgeeks.org/mark-and-sweep-garbage-collection-algorithm/).
+
+* [Animesh Gaitonde's Medium Blog](https://medium.com/@animeshgaitonde/garbage-collection-algorithm-mark-sweep-ed874272702d).
+
+* [Dmitri Soshnikov's Blog](http://dmitrysoshnikov.com/compilers/writing-a-mark-sweep-garbage-collector/).
+
 <h3> When is a pointer reachable? </h3>
 
 * A pointer points to it, inside memory allocated by <code>gc_alloc</code> and friends.
@@ -57,8 +65,7 @@ void gc_pause(gc_t *gc);
 void gc_resume(gc_t *gc);
 ```
 
-Pause or resume the garbage collector. While paused the garbage collector will
-not run during any allocations made.
+Pause or resume the garbage collector. While paused the garbage collector will not run during any allocations made.
 
 ```c
 void *gc_alloc(gc_t *gc, size_t size);
@@ -108,3 +115,19 @@ void gc_set_flags(gc_t *gc, void *ptr, int flags);
 ```
 
 Set the flags associated with a memory allocation, for example the value `GC_ROOT` can be used to specify that an allocation is a garbage collection root.
+
+## Notes
+
+* Cello-GC does not work when incrementing pointers.
+
+* Cello-GC does not work when compiler optimisations are enabled.
+  * Such as inline functions.
+
+* Cello-GC does not work with <code>setjmp</code> and <code>longjmp</code>.
+
+## Acknowlegments
+
+This repository is created for practical purposes under my personal interests in compiler design and interpeters. There is no commercial use of this code and I am aware of license agreements. I want to give special thanks, and of course, credit for the work here to both:
+
+* [libCello](http://libcello.org/home)
+* [Daniel Holden](https://github.com/orangeduck)
