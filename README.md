@@ -4,6 +4,12 @@ A mark-sweep style, conservative and thread local garbage collector based on [Ce
 
 It provides automatical removal of pointers allocated by tgc_alloc() and friends of those pointers whenever they become unreachable.
 
+* This garbage collector also supports destructors and flags.
+
+<h4> What is a destructor? </h4>
+
+> A destructor is a function that is called when an unreachable memory is freed by garbage collector. This functions can be set when a memory is allocated by using memory allocation functions defined in this API.
+
 <h3> When is a pointer reachable? </h3>
 
 * A pointer points to it, inside memory allocated by <code>tgc_alloc</code> and friends.
